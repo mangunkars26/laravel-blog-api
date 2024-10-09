@@ -15,18 +15,17 @@ class RoleCheck
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      * @param  string[]  ...$roles
      */
-    public function handle(Request $request, Closure $next, ...$roles): Response
+    public function handle(Request $request, Closure $next, $role = null): Response
     {
-        $user = Auth::user();
-
-        if ($user && in_array($user->role, $roles)) {
+        if (auth()->user() && auth()->user()->role == $role) {
+            // Lanjutkan request ke middleware berikutnya atau controller
             return $next($request);
         }
 
+        // Jika user tidak memiliki role yang sesuai, return response 403 Forbidden
         return response()->json([
             'success' => false,
-            'message' => 'Unauthorized: Access denied',
-            'data' => null
+            'message' => 'You do not have permission to access this resource.'
         ], 403);
     }
 }

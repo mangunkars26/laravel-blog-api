@@ -12,6 +12,20 @@ class Authenticate extends Middleware
      */
     protected function redirectTo(Request $request): ?string
     {
-        return $request->expectsJson() ? null : route('login');
+        return null;
+        // return $request->expectsJson() ? null : route('login');
+    }
+
+    /**
+     * Handle unauthenticated requests.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  array  $guards
+     * @return \Symfony\Component\HttpFoundation\Response
+     */
+    protected function unauthenticated($request, array $guards)
+    {
+        // Kembalikan respons JSON jika tidak terautentikasi
+        return response()->json(['message' => 'Unauthenticated.'], 401);
     }
 }

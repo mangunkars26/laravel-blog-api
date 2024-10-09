@@ -5,39 +5,47 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\PostController;
+use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\CategoryController;
 
+// Grup rute dengan prefix 'v1'
+Route::group([], function () {
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
+    // Rute yang tidak memerlukan autentikasi
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/posts', [PostController::class, 'index']);
+    Route::get('/posts/{id}', [PostController::class, 'show']);
 
+    // Rute yang memerlukan autentikasi JWT
+    Route::middleware(['auth:api'])->group(function () {
 
-Route::post('login', [AuthController::class, 'login'])->name('login');
-Route::get('posts', [PostController::class, 'index']);
-Route::get('posts/{id}', [PostController::class, 'show']);
+        // Rute untuk mendapatkan data user saat ini (opsional, bisa digabung dengan profile)
+        Route::get('/user', function (Request $request) {
+            return $request->user();
+        });
 
-// Route::middleware(['auth:api', 'role:admin'])->group(function () {
-    Route::post('register', [AuthController::class, 'register']);
-// });
+        // Rute yang memerlukan autentikasi admin dan author
+        Route::middleware(['role:admin,author'])->group(function () {
+            // Routes untuk Posts
+            Route::post('/posts', [PostController::class, 'store']);
+            Route::put('/posts/{id}', [PostController::class, 'update']);
+            Route::delete('/posts/{id}', [PostController::class, 'destroy']);
 
-Route::middleware(['auth:api', 'role:admin, author'])->group(function() {
-    Route::post('logout', [AuthController::class, 'logout']);
-    Route::post('refresh', [AuthController::class, 'refresh']);
-    Route::get('profile', [AuthController::class, 'profile']);
-    
-    // Routes for Posts
+            // Routes untuk Categories dan Tags
+            Route::apiResource('/categories', CategoryController::class);
+            Route::apiResource('/tags', TagController::class);
+        });
 
-    Route::post('posts', [PostController::class, 'store']);
-    Route::put('posts/{id}', [PostController::class, 'update']);
-    Route::delete('posts/{id}', [PostController::class, 'destroy']);
+        // Rute yang hanya dapat diakses oleh admin
+        Route::middleware(['role:admin'])->group(function () {
+            // Contoh: Rute untuk mengelola users (jika sudah ada UserController)
+            Route::apiResource('/users', UserController::class);
 
-    //categories and tags
-    Route::resource('categories', CategoryController::class);
-    Route::resource('tags', TagController::class);
-    
-});
-
-Route::middleware(['auth:api', 'role:admin'])->group(function () {
-    Route::resource('users', UserController::class);
+            // Rute AuthController untuk admin
+            Route::post('/logout', [AuthController::class, 'logout']);
+            Route::post('/refresh', [AuthController::class, 'refresh']);
+            Route::get('/profile', [AuthController::class, 'profile']);
+        });
+    });
 });

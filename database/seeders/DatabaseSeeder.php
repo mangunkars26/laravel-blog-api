@@ -2,14 +2,20 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\Post;
+use Database\Seeders\TagSeeder;
+use Illuminate\Database\Seeder;
+use Database\Seeders\PostSeeder;
+use Database\Seeders\CategorySeeder;
 
-class PostSeeder extends Seeder
+class DatabaseSeeder extends Seeder
 {
     public function run()
     {
-        // Generate 50 dummy posts
-        Post::factory()->count(50)->create();
+    $this->call([
+        PostSeeder::class,
+        // CategorySeeder::class,
+        // TagSeeder::class,
+    ]);
     }
 }

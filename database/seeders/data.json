@@ -1,0 +1,25 @@
+
+    {
+        "title": "Top 10 Programming Languages to Learn in 2024",
+        "body": "With the rapid advancement of technology, certain programming languages are gaining more traction. This article explores the top 10 programming languages that are essential for developers in 2024.",
+        "status": "draft",
+        "featured_image": "https://example.com/images/top-programming-languages.jpg"
+    },
+    {
+        "title": "Understanding the Basics of Machine Learning",
+        "body": "Machine learning is a subset of artificial intelligence that enables systems to learn from data. This article breaks down the core concepts and terminologies associated with machine learning.",
+        "status": "scheduled",
+        "featured_image": "https://example.com/images/machine-learning-basics.jpg"
+    },
+    {
+        "title": "Best Practices for Writing Clean Code",
+        "body": "Writing clean code is crucial for maintainability and collaboration among developers. This post outlines best practices to ensure your code remains readable and efficient.",
+        "status": "published",
+        "featured_image": "https://example.com/images/clean-code-practices.jpg"
+    },
+    {
+        "title": "Exploring the World of Web Development Frameworks",
+        "body": "Web development frameworks can significantly enhance productivity and simplify coding. This article provides an overview of popular frameworks such as React, Angular, and Vue.js.",
+        "status": "draft",
+        "featured_image": "https://example.com/images/web-development-frameworks.jpg"
+    }

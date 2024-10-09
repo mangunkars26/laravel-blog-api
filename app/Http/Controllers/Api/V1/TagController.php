@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use Exception;
 use App\Models\Tag;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 
@@ -13,9 +14,16 @@ class TagController extends Controller
     {
         try {
             $tags = Tag::all();
+            if ($tags->isEmpty()){
+                return response()->json([
+                    'success' => false,
+                    'message' => "Anda belum buat tag",
+                    'data' => null,
+                ]);
+            }
             return response()->json([
                 'success' => true,
-                'message' => 'Tags retrieved successfully',
+                'message' => 'Tags berhasil diambil.',
                 'data' => $tags,
             ]);
         } catch (Exception $e) {
@@ -31,11 +39,14 @@ class TagController extends Controller
     {
         $this->validate($request, [
             'name' => 'required|string|max:255|unique:tags',
-            'slug' => 'required|string|max:255|unique:tags',
         ]);
 
         try {
-            $tag = Tag::create($request->all());
+            $slug = Str::slug($request->name);
+            $tag = Tag::create([
+                'name' => $request->name,
+                'slug' => $slug
+            ]);
 
             return response()->json([
                 'success' => true,
