@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\PostController;
 use App\Http\Controllers\Api\V1\UserController;
+use App\Http\Controllers\Api\DonationController;
+use App\Http\Controllers\Api\V1\CampaignController;
 use App\Http\Controllers\Api\V1\CategoryController;
 
 // Grup rute dengan prefix 'v1'
@@ -16,6 +18,10 @@ Route::group([], function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/posts', [PostController::class, 'index']);
     Route::get('/posts/{id}', [PostController::class, 'show']);
+
+    //campaigns
+    Route::get('campaigns', [CampaignController::class, 'index']);
+    Route::get('campaigns/{id}', [CampaignController::class, 'show']);
 
     // Rute yang memerlukan autentikasi JWT
     Route::middleware(['auth:api'])->group(function () {
@@ -47,5 +53,10 @@ Route::group([], function () {
             Route::post('/refresh', [AuthController::class, 'refresh']);
             Route::get('/profile', [AuthController::class, 'profile']);
         });
+
+
+        Route::middleware('auth:api')->post('campaigns', [CampaignController::class, 'store']);
+        Route::middleware('auth:api')->post('donations', [DonationController::class, 'store']);
+        Route::middleware('auth:api')->put('donations/{id}/status', [DonationController::class, 'updateStatus']);
     });
 });
