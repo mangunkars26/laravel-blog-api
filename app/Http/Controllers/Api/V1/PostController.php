@@ -17,56 +17,48 @@ class PostController extends Controller
     public function index(Request $request)
     {
         try {
-            // Ambil parameter limit dari request, atau gunakan default 10 jika tidak ada
             $limit = $request->get('limit', 20);
     
-            // Jika limit yang diberikan bukan angka atau kurang dari 1, berikan respons invalid
             if (!is_numeric($limit) || $limit < 1) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Batas jumlah postingan tidak valid',
                     'data' => null,
-                ], 400); // 400 Bad Request
+                ], 400);
             }
     
-            // Ambil post dengan kategori dan tag, paginasi berdasarkan limit
             $posts = Post::with(['categories', 'tags', 'author:id,name'])->paginate($limit);    
-            // Jika tidak ada post yang ditemukan
             if ($posts->isEmpty()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Belum ada postingan yang tersedia',
                     'data' => [],
-                ], 200); // 200 OK, tapi data kosong
+                ], 200);
             }
 
-            // Tambahkan slug di URL pagination
         $posts->getCollection()->transform(function ($post) {
             $post->slug_url = url("/api/posts/" . $post->slug);
             return $post;
         });
     
-            // Jika post ditemukan, return hasilnya
             return response()->json([
                 'success' => true,
                 'message' => 'Postingan berhasil diambil',
                 'data' => $posts,
-            ], 200); // 200 OK
+            ], 200);
     
         } catch (\Illuminate\Database\QueryException $e) {
-            // Error spesifik database
             return response()->json([
                 'success' => false,
                 'message' => 'Kesalahan database: ' . $e->getMessage(),
                 'data' => null,
-            ], 500); // 500 Internal Server Error
+            ], 500);
         } catch (Exception $e) {
-            // Error umum
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan tak terduga: ' . $e->getMessage(),
                 'data' => null,
-            ], 500); // 500 Internal Server Error
+            ], 500);
         }
     }
     
@@ -97,7 +89,7 @@ class PostController extends Controller
                 'success' => true,
                 'message' => 'Postingan berhasil dibuat',
                 'data' => $post,
-            ], 201); // 201 Created
+            ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Kesalahan saat membuat post: ' . $e->getMessage());

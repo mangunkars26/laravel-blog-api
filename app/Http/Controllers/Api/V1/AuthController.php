@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    // Register new user
     public function register(Request $request)
     {
         // Validasi input
@@ -33,7 +32,6 @@ class AuthController extends Controller
         }
 
         try {
-            // Buat pengguna baru
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -41,7 +39,6 @@ class AuthController extends Controller
                 'role' => $request->role,
             ]);
 
-            // Generate token untuk pengguna yang baru terdaftar
             $token = JWTAuth::fromUser($user);
 
             return response()->json([
@@ -61,7 +58,6 @@ class AuthController extends Controller
         }
     }
 
-    // Login user dan generate JWT token
     public function login(Request $request)
     {
         // Validasi input
@@ -108,7 +104,6 @@ class AuthController extends Controller
         }
     }
 
-    // Logout user dan invalidate JWT token
     public function logout()
     {
         try {
@@ -128,7 +123,6 @@ class AuthController extends Controller
         }
     }
 
-    // Refresh JWT token
     public function refresh()
     {
         try {
@@ -150,7 +144,6 @@ class AuthController extends Controller
         }
     }
 
-    // Get logged-in user profile
     public function profile()
     {
         try {
