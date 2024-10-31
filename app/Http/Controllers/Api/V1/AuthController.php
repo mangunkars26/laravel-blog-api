@@ -6,6 +6,7 @@ use Exception;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -78,6 +79,9 @@ class AuthController extends Controller
 
         try {
             if (!$token = JWTAuth::attempt($credentials)) {
+                Log::error('Login attempt failed for email: ' . $credentials['email']); // Log error
+                Log::info('Email:', [$request->email]);
+                Log::info('Password:', [$request->password]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized, invalid credentials',
@@ -96,6 +100,7 @@ class AuthController extends Controller
                 ]
             ]);
         } catch (Exception $e) {
+            Log::error('Login Error: ' . $e->getMessage()); // Tambahkan log error
             return response()->json([
                 'success' => false,
                 'message' => 'Login failed: ' . $e->getMessage(),

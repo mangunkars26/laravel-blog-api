@@ -11,11 +11,13 @@ use App\Http\Controllers\Api\V1\CampaignController;
 use App\Http\Controllers\Api\V1\CategoryController;
 
 // Grup rute dengan prefix 'v1'
-Route::group([], function () {
+Route::prefix('v1')->group( function () {
 
     // Rute yang tidak memerlukan autentikasi
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::prefix('auth')->group(function () {
+        Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    });
     Route::get('/posts', [PostController::class, 'index']);
     Route::get('/posts/{id}', [PostController::class, 'show']);
 

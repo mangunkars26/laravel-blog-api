@@ -2,11 +2,12 @@
 
 namespace Database\Factories;
 
-use App\Models\Post;
-use App\Models\Category;
 use App\Models\Tag;
-use Illuminate\Database\Eloquent\Factories\Factory;
+use App\Models\Post;
+use App\Models\User;
+use App\Models\Category;
 use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Factories\Factory;
 
 class PostFactory extends Factory
 {
@@ -33,16 +34,15 @@ class PostFactory extends Factory
             'How to Optimize Your SQL Queries for Performance'
         ];
 
-        // Menghasilkan konten panjang dengan random sentence
         $body = $this->faker->paragraphs(rand(3, 6), true);
 
         return [
             'title' => $this->faker->randomElement($titles),
-            'slug' => Str::slug($this->faker->randomElement($titles)),
+            'slug' => Str::slug($this->faker->randomElement($titles) . '-' . uniqid()),
             'body' => $body,
             'status' => $this->faker->randomElement(['draft', 'published', 'scheduled']),
             'featured_image' => $this->faker->imageUrl(640, 480, 'tech', true),
-            'user_id' => 1, // Ubah sesuai dengan user ID yang relevan di database
+            'user_id' => User::inRandomOrder()->first()->id, // Perbaikan di sini
         ];
     }
 }
