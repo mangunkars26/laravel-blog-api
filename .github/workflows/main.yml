@@ -1,0 +1,60 @@
+name: Deploy Laravel Project on Push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+
+      - name: Copy .env File
+        run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+
+      - name: Install Composer Dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install NPM Dependencies
+        run: npm install
+
+      - name: Build Assets
+        run: npm run build
+
+      - name: Generate Application Key
+        run: php artisan key:generate --force
+
+      - name: Create Storage Symlink
+        run: php artisan storage:link
+
+      - name: Set Permissions
+        run: chmod -R 775 storage bootstrap/cache
+
+      - name: Run Migrations
+        run: php artisan migrate --force
+
+      - name: Sync Files to FTP
+        uses: shivammathur/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /path/to/your/project
+
+      - name: Deployment Complete
+        run: echo "Deployment finished successfully!"
