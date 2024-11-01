@@ -41,6 +41,8 @@ jobs:
 
       - name: Create Storage Symlink
         run: php artisan storage:link
+      - name: Create JWT Secret
+        run: php artisan jwt:secret
 
       - name: Set Permissions
         run: chmod -R 775 storage bootstrap/cache
