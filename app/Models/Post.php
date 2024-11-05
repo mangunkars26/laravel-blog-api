@@ -13,13 +13,15 @@ class Post extends Model
 {
     use HasFactory;
     protected $fillable = [
+        'user_id',
+        'category_id',
         'title',
         'slug',
         'body',
+        'featured_image',
         'status',
         'scheduled_at',
-        'user_id',
-        'featured_image'
+        
     ];
 
     public function author()
@@ -34,7 +36,7 @@ class Post extends Model
 
     public function tags()
     {
-        return $this->belongsToMany(Tag::class);
+        return $this->belongsToMany(Tag::class, 'post_tag');
     }
 
 }

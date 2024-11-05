@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\PostController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\DonationController;
+use App\Http\Controllers\Api\V1\AdmPostController;
 use App\Http\Controllers\Api\V1\CampaignController;
 use App\Http\Controllers\Api\V1\CategoryController;
 
@@ -28,21 +29,37 @@ Route::prefix('v1')->group( function () {
     // Rute yang memerlukan autentikasi JWT
     Route::middleware(['auth:api'])->group(function () {
 
+ 
+
         // Rute untuk mendapatkan data user saat ini (opsional, bisa digabung dengan profile)
         Route::get('/user', function (Request $request) {
             return $request->user();
         });
 
         // Rute yang memerlukan autentikasi admin dan author
-        Route::middleware(['role:admin,author'])->group(function () {
-            // Routes untuk Posts
-            Route::post('/posts', [PostController::class, 'store']);
-            Route::put('/posts/{id}', [PostController::class, 'update']);
-            Route::delete('/posts/{id}', [PostController::class, 'destroy']);
+        Route::middleware(['role:admin,author'])->prefix('admin')->group(function () {
+
+            //admincontroller
+        Route::prefix('posts')->group(function () {
+            Route::get('/posts', [AdmPostController::class, 'index']);
+            Route::get('/create-post', [AdmPostController::class,'store']);
+            Route::get('/update-post', [AdmPostController::class,'update']);
+            Route::get('/delete-post', [AdmPostController::class,'destroy']);
+            Route::get('/stats', [AdmPostController::class,'stats']);
+            Route::patch('/posts/{id}/publish', [AdmPostController::class, 'toPublish']);
+            Route::post('/posts/batch-delete', [AdmPostController::class, 'batchDelete']);
+            Route::get('/posts/search', [AdmPostController::class, 'searchPosts']);
+            Route::get('/posts/popular', [AdmPostController::class, 'popularPosts']);
+            });
+
+            Route::prefix('categories')->group(function () {
+                Route::apiResource('/categories', CategoryController::class);
+            });
+            Route::prefix('tags')->group(function () {
+                Route::apiResource('/tags', TagController::class);
+            });
 
             // Routes untuk Categories dan Tags
-            Route::apiResource('/categories', CategoryController::class);
-            Route::apiResource('/tags', TagController::class);
         });
 
         // Rute yang hanya dapat diakses oleh admin

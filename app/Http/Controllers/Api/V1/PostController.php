@@ -14,11 +14,13 @@ use Illuminate\Support\Facades\DB;
 
 class PostController extends Controller
 {
+
     public function index(Request $request)
     {
         try {
-            $limit = $request->get('limit', 20);
-    
+            $limit = $request->get('limit', 10);
+
+            // Validasi limit
             if (!is_numeric($limit) || $limit < 1) {
                 return response()->json([
                     'success' => false,
@@ -26,27 +28,34 @@ class PostController extends Controller
                     'data' => null,
                 ], 400);
             }
-    
-            $posts = Post::with(['categories', 'tags', 'author:id,name'])->paginate($limit);    
-            if ($posts->isEmpty()) {
+
+            // Mengambil hanya postingan yang berstatus 'published'
+            $posts = Post::with(['categories', 'tags', 'author:id,name'])
+                ->where('status', 'published')
+                ->paginate($limit);    
+
+            // Cek jika tidak ada postingan
+            if ($posts->total() === 0) {
                 return response()->json([
-                    'success' => true,
-                    'message' => 'Belum ada postingan yang tersedia',
-                    'data' => [],
-                ], 200);
+                    'success' => true, // Menjaga status sukses
+                    'message' => 'Belum ada postingan yang tersedia', // Pesan untuk tidak ada postingan
+                    'data' => [], // Mengembalikan array kosong
+                ], 404); // Kembali dengan status 200
             }
 
-        $posts->getCollection()->transform(function ($post) {
-            $post->slug_url = url("/api/posts/" . $post->slug);
-            return $post;
-        });
-    
+            // Transformasi slug_url
+            $posts->getCollection()->transform(function ($post) {
+                $post->slug_url = url("/api/posts/" . $post->slug);
+                return $post;
+            });
+
+            // Kembali dengan data postingan
             return response()->json([
                 'success' => true,
                 'message' => 'Postingan berhasil diambil',
                 'data' => $posts,
             ], 200);
-    
+
         } catch (\Illuminate\Database\QueryException $e) {
             return response()->json([
                 'success' => false,
@@ -61,6 +70,36 @@ class PostController extends Controller
             ], 500);
         }
     }
+
+
+    public function getRelatedPosts($postId, $limit = 5)
+    {
+        $post = Post::find($postId);
+        
+        if (!$post) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Postingan tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        // Mengambil postingan yang memiliki kategori atau tag yang sama
+        $relatedPosts = Post::with(['categories', 'tags', 'author:id,name'])
+            ->whereHas('categories', function ($query) use ($post) {
+                return $query->whereIn('id', $post->categories->pluck('id'));
+            })
+            ->where('id', '!=', $post->id)
+            ->limit($limit)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Related posts berhasil diambil',
+            'data' => $relatedPosts,
+        ], 200);
+    }
+
     
 
     public function store(Request $request)
@@ -152,6 +191,7 @@ class PostController extends Controller
                 'data' => $post,
             ]);
         } catch (Exception $e) {
+            Log::error("Error ketika ambil post:" . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat mengambil postingan',

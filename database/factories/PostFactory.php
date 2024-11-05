@@ -34,15 +34,47 @@ class PostFactory extends Factory
             'How to Optimize Your SQL Queries for Performance'
         ];
 
-        $body = $this->faker->paragraphs(rand(3, 6), true);
+        $body = $this->faker->paragraphs(rand(8, 12), true);
+        $title = $this->faker->randomElement($titles);
+        
+        // Mencari kategori yang sesuai dengan kata-kata dalam title atau body
+        $category = $this->findMatchingCategory($title, $body);
 
         return [
-            'title' => $this->faker->randomElement($titles),
-            'slug' => Str::slug($this->faker->randomElement($titles) . '-' . uniqid()),
+            'title' => $title,
+            'slug' => Str::slug($title . '-' . uniqid()),
             'body' => $body,
             'status' => $this->faker->randomElement(['draft', 'published', 'scheduled']),
             'featured_image' => $this->faker->imageUrl(640, 480, 'tech', true),
-            'user_id' => User::inRandomOrder()->first()->id, // Perbaikan di sini
+            'user_id' => User::inRandomOrder()->first()->id,
+            'category_id' => $category ? $category->id : null, // Menetapkan category_id
         ];
+    }
+
+    /**
+     * Mencari kategori yang cocok berdasarkan kata-kata dalam title dan body.
+     *
+     * @param string $title
+     * @param string $body
+     * @return \App\Models\Category|null
+     */
+    protected function findMatchingCategory(string $title, string $body)
+    {
+        // Mengambil semua kategori
+        $categories = Category::all();
+
+        // Membuat array untuk kata-kata dari title dan body
+        $words = array_merge(explode(' ', strtolower($title)), explode(' ', strtolower($body)));
+
+        foreach ($categories as $category) {
+            // Mengecek apakah ada kata yang sesuai dalam nama kategori
+            foreach ($words as $word) {
+                if (strpos(strtolower($category->name), $word) !== false) {
+                    return $category; // Mengembalikan kategori pertama yang cocok
+                }
+            }
+        }
+
+        return null; // Jika tidak ada kategori yang cocok
     }
 }
