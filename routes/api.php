@@ -13,14 +13,25 @@ use App\Http\Controllers\Api\V1\CategoryController;
 
 // Grup rute dengan prefix 'v1'
 Route::prefix('v1')->group( function () {
+    
+        // Grup rute untuk 'posts'
+    Route::prefix('posts')->group(function () {
+        Route::get('/', [PostController::class, 'index']); // Menampilkan daftar postingan
+        Route::get('/{slug}', [PostController::class, 'show']); // Menampilkan postingan berdasarkan slug
+        // Route::get('/{id}', [PostController::class, 'show']); // Menampilkan postingan berdasarkan ID numerik
+        Route::get('/popular', [PostController::class, 'popularPosts']); // Mendapatkan postingan popule
+        Route::get('/related/{postId}', [PostController::class, 'getRelatedPosts']); // Mendapatkan postingan terkait berdasarkan post ID
+        Route::get('/category/{categoryId}', [PostController::class, 'getPostsByCategory']); // Mendapatkan postingan berdasarkan kategori
+    });
 
     // Rute yang tidak memerlukan autentikasi
     Route::prefix('auth')->group(function () {
         Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
     });
-    Route::get('/posts', [PostController::class, 'index']);
-    Route::get('/posts/{id}', [PostController::class, 'show']);
+
+
+    
 
     //campaigns
     Route::get('campaigns', [CampaignController::class, 'index']);
@@ -37,30 +48,27 @@ Route::prefix('v1')->group( function () {
         });
 
         // Rute yang memerlukan autentikasi admin dan author
-        Route::middleware(['role:admin,author'])->prefix('admin')->group(function () {
+        Route::middleware(['role:admin,author'])->prefix('admin/posts')->group(function () {
 
             //admincontroller
-        Route::prefix('posts')->group(function () {
-            Route::get('/posts', [AdmPostController::class, 'index']);
-            Route::get('/create-post', [AdmPostController::class,'store']);
-            Route::get('/update-post', [AdmPostController::class,'update']);
-            Route::get('/delete-post', [AdmPostController::class,'destroy']);
+            Route::get('/', [AdmPostController::class, 'index']);
+            Route::post('/create', [AdmPostController::class,'store']);
+            Route::patch('/update/{id}', [AdmPostController::class,'update']);
+            Route::delete('/{id}', [AdmPostController::class,'destroy']);
             Route::get('/stats', [AdmPostController::class,'stats']);
-            Route::patch('/posts/{id}/publish', [AdmPostController::class, 'toPublish']);
-            Route::post('/posts/batch-delete', [AdmPostController::class, 'batchDelete']);
-            Route::get('/posts/search', [AdmPostController::class, 'searchPosts']);
-            Route::get('/posts/popular', [AdmPostController::class, 'popularPosts']);
-            });
+            Route::patch('/{id}/publish', [AdmPostController::class, 'toPublish']);
+            Route::post('/batch-delete', [AdmPostController::class, 'batchDelete']);
+            Route::get('/search', [AdmPostController::class, 'searchPosts']);
+            Route::get('/popular', [AdmPostController::class, 'popularPosts']);
 
-            Route::prefix('categories')->group(function () {
-                Route::apiResource('/categories', CategoryController::class);
-            });
-            Route::prefix('tags')->group(function () {
-                Route::apiResource('/tags', TagController::class);
-            });
+        });    
 
-            // Routes untuk Categories dan Tags
+        Route::middleware(['role:admin, author'])->prefix('admin')->group(function (){
+        Route::apiResource('/categories', CategoryController::class);
+        Route::apiResource('/tags', TagController::class);
         });
+
+        
 
         // Rute yang hanya dapat diakses oleh admin
         Route::middleware(['role:admin'])->group(function () {

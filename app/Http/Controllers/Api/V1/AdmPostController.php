@@ -4,98 +4,69 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Post;
 use Illuminate\Support\Str;
+use GuzzleHttp\Psr7\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePostRequest;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\PostFilterRequest;
 use App\Http\Requests\UpdatePostRequest;
-use GuzzleHttp\Psr7\Request;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class AdmPostController extends Controller
 {
     // Get all posts
 
-    public function index(Request $request)
+    public function index(PostFilterRequest $request)
 {
-    try {
-        $query = Post::query();
+    // Inisialisasi query untuk model Post
+    $query = Post::query();
 
-        // Validate query parameters
-        $validatedData = $request->validate([
-            'status' => 'in:published,draft',
-            'author_id' => 'integer|exists:users,id',
-            'category_id' => 'integer|exists:categories,id',
-            'date_from' => 'date|before_or_equal:date_to',
-            'date_to' => 'date|after_or_equal:date_from',
-            'sort_by' => 'in:created_at,updated_at,views',
-            'order' => 'in:asc,desc',
-            'limit' => 'integer|min:1|max:100',
-            'search' => 'string|max:255'
-        ], [
-            'status.in' => 'Status must be either published or draft.',
-            'author_id.exists' => 'The specified author does not exist.',
-            'category_id.exists' => 'The specified category does not exist.',
-            'date_from.date' => 'The start date must be a valid date.',
-            'date_to.date' => 'The end date must be a valid date.',
-            'sort_by.in' => 'Invalid sort column. Allowed columns: created_at, updated_at, views.',
-            'order.in' => 'Order must be either asc or desc.',
-            'limit.min' => 'Limit must be at least 1.',
-            'limit.max' => 'Limit cannot exceed 100.',
-            'search.max' => 'Search query too long, maximum 255 characters allowed.'
-        ]);
-
-        // Apply filters
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-        if ($request->filled('author_id')) {
-            $query->where('author_id', $request->author_id);
-        }
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
-        }
-        if ($request->filled('date_from') && $request->filled('date_to')) {
-            $query->whereBetween('created_at', [$request->date_from, $request->date_to]);
-        }
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('title', 'LIKE', '%' . $request->search . '%')
-                  ->orWhere('content', 'LIKE', '%' . $request->search . '%');
-            });
-        }
-
-        // Sorting
-        $sortBy = $request->get('sort_by', 'created_at');
-        $order = $request->get('order', 'desc');
-        $query->orderBy($sortBy, $order);
-
-        // Pagination
-        $limit = $request->get('limit', 20);
-        $posts = $query->paginate($limit);
-
-        // Response
-        return response()->json([
-            'success' => true,
-            'message' => 'Posts retrieved successfully.',
-            'data' => $posts
-        ], 200);
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        // Handling validation errors
-        return response()->json([
-            'success' => false,
-            'message' => 'Invalid input parameters.',
-            'errors' => $e->errors()
-        ], 422);
-    } catch (\Exception $e) {
-        // Handling unexpected errors
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to retrieve posts.',
-            'error' => $e->getMessage()
-        ], 500);
+    // Filter berdasarkan status
+    if ($request->filled('status')) {
+        $query->where('status', $request->status);
     }
+
+    // Filter berdasarkan author_id
+    if ($request->filled('author_id')) {
+        $query->where('author_id', $request->author_id);
+    }
+
+    // Filter berdasarkan category_id
+    if ($request->filled('category_id')) {
+        $query->where('category_id', $request->category_id);
+    }
+
+    // Filter berdasarkan rentang tanggal created_at
+    if ($request->filled('date_from') && $request->filled('date_to')) {
+        $query->whereBetween('created_at', [$request->date_from, $request->date_to]);
+    }
+
+    // Filter berdasarkan pencarian pada title atau content
+    if ($request->filled('search')) {
+        $query->where(function ($q) use ($request) {
+            $q->where('title', 'LIKE', '%' . $request->search . '%')
+              ->orWhere('content', 'LIKE', '%' . $request->search . '%');
+        });
+    }
+
+    // Sorting data
+    $sortBy = $request->get('sort_by', 'created_at');
+    $order = $request->get('order', 'desc');
+    $query->orderBy($sortBy, $order);
+
+    // Ambil jumlah limit hasil yang diminta, default ke 20
+    $limit = $request->get('limit', 20);
+    $posts = $query->paginate($limit);
+
+    // Response JSON untuk hasil postingan
+    return response()->json([
+        'success' => true,
+        'message' => 'Posts retrieved successfully.',
+        'data' => $posts
+    ], 200);
 }
+
 
 
     public function toPublish (Request $request, $id)
@@ -161,28 +132,7 @@ class AdmPostController extends Controller
         }
     }
 
-    // Get popular posts by views
-    public function popularPosts()
-    {
-        try {
-            $posts = Post::orderBy('views', 'desc')
-                          ->limit(10)
-                          ->get();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Popular posts retrieved successfully',
-                'data' => $posts
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve popular posts',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-    
 
     private function handleFileUpload($file, $currentImage = null)
     {
@@ -231,10 +181,10 @@ class AdmPostController extends Controller
     }
 
     // Show a specific post
-    public function show($id)
+    public function show($slug)
     {
         try {
-            $post = Post::findOrFail($id);
+            $post = Post::findOrFail($slug);
             return response()->json([
                 'success' => true,
                 'message' => 'Post retrieved successfully',
