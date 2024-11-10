@@ -16,9 +16,10 @@ Route::prefix('v1')->group( function () {
     
         // Grup rute untuk 'posts'
     Route::prefix('posts')->group(function () {
+        Route::get('/all', [PostController::class, 'allPosts']);
         Route::get('/', [PostController::class, 'index']); // Menampilkan daftar postingan
-        Route::get('/{slug}', [PostController::class, 'show']); // Menampilkan postingan berdasarkan slug
-        // Route::get('/{id}', [PostController::class, 'show']); // Menampilkan postingan berdasarkan ID numerik
+        // Route::get('/{slug}', [PostController::class, 'show']); // Menampilkan postingan berdasarkan slug
+        Route::get('/{id}', [PostController::class, 'show']); // Menampilkan postingan berdasarkan ID numerik
         Route::get('/popular', [PostController::class, 'popularPosts']); // Mendapatkan postingan popule
         Route::get('/related/{postId}', [PostController::class, 'getRelatedPosts']); // Mendapatkan postingan terkait berdasarkan post ID
         Route::get('/category/{categoryId}', [PostController::class, 'getPostsByCategory']); // Mendapatkan postingan berdasarkan kategori

@@ -18,19 +18,29 @@ use Illuminate\Support\Facades\DB;
 class PostController extends Controller
 {
 
+    public function allPosts()
+    {
+        try {
+            $posts = Post::paginate(10);
+            return response()->json(['data' => $posts]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     public function index(PostFilterRequest $request)
     {
         // Inisialisasi query untuk model Post
-        $query = Post::query();
+        $query = Post::with(['user', 'category', 'tags']);
 
         // Filter berdasarkan status
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        // Filter berdasarkan author_id
-        if ($request->filled('author_id')) {
-            $query->where('author_id', $request->author_id);
+        // Filter berdasarkan user_id
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
         }
 
         // Filter berdasarkan category_id
@@ -87,7 +97,7 @@ class PostController extends Controller
             }
         
             // Ambil daftar posts yang memiliki kategori tertentu dan dengan relasi tambahan
-            $posts = Post::with(['categories', 'tags', 'author:id,name'])
+            $posts = Post::with(['categories', 'tags', 'user:id,name'])
                 ->where('status', 'published')
                 ->whereHas('categories', function ($query) use ($category) {
                     $query->where('category_id', $category->id);
@@ -109,24 +119,25 @@ class PostController extends Controller
             ]);
         }
 
-        public function show($slug)
+    public function show($id)
         {
             try {
-                $post = Post::with(['categories', 'tags'])
-                    ->where('slug', $slug)
+
+                $post = Post::with(['category', 'tags', 'user'])
+                    ->where('id', $id)
                     ->where('status', 'published')
                     ->firstOrFail();
-    
+
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Postingan berhasil diambil',
                     'data' => $post,
                 ]);
             } catch (ModelNotFoundException $e) {
-                Log::error("Post not found with slug: {$slug}");
                 return response()->json([
                     'success' => false,
-                    'message' => "Postingan dengan slug {$slug} tidak ditemukan",
+                    'message' => "Postingan dengan id {$id} tidak ditemukan",
                     'data' => null,
                 ], 404);
             } catch (Exception $e) {
@@ -138,6 +149,7 @@ class PostController extends Controller
                 ], 500);
             }
         }
+
     
         
 
@@ -166,7 +178,7 @@ class PostController extends Controller
 //     }
 
 //     // Mengambil postingan lain yang memiliki kategori yang sama
-//     $relatedPosts = Post::with(['category', 'tags', 'author:id,name'])
+//     $relatedPosts = Post::with(['category', 'tags', 'user:id,name'])
 //         ->where('category_id', $post->category->id)
 //         ->where('id', '!=', $post->id)
 //         ->limit($limit)

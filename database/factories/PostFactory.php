@@ -36,16 +36,19 @@ class PostFactory extends Factory
 
         $body = $this->faker->paragraphs(rand(8, 12), true);
         $title = $this->faker->randomElement($titles);
-        
+
         // Mencari kategori yang sesuai dengan kata-kata dalam title atau body
         $category = $this->findMatchingCategory($title, $body);
+
+        // Menentukan tag yang akan ditambahkan secara acak
+        $tags = Tag::inRandomOrder()->take(rand(2, 4))->pluck('id')->toArray();
 
         return [
             'title' => $title,
             'slug' => Str::slug($title . '-' . uniqid()),
             'body' => $body,
             'status' => $this->faker->randomElement(['draft', 'published', 'scheduled']),
-            'featured_image' => $this->faker->imageUrl(640, 480, 'tech', true),
+            'featured_image' => $this->faker->imageUrl(640, 480, 'technology', true),
             'user_id' => User::inRandomOrder()->first()->id,
             'category_id' => $category ? $category->id : null, // Menetapkan category_id
         ];
@@ -60,18 +63,16 @@ class PostFactory extends Factory
      */
     protected function findMatchingCategory(string $title, string $body)
     {
-        // Mengambil semua kategori
-        $categories = Category::all();
-
-        // Membuat array untuk kata-kata dari title dan body
+        // Menggabungkan kata-kata dalam title dan body
         $words = array_merge(explode(' ', strtolower($title)), explode(' ', strtolower($body)));
 
-        foreach ($categories as $category) {
-            // Mengecek apakah ada kata yang sesuai dalam nama kategori
-            foreach ($words as $word) {
-                if (strpos(strtolower($category->name), $word) !== false) {
-                    return $category; // Mengembalikan kategori pertama yang cocok
-                }
+        // Menggunakan pencarian di database untuk menemukan kategori yang relevan
+        foreach ($words as $word) {
+            // Mencari kategori yang memiliki kata yang cocok dalam nama kategori
+            $category = Category::where('name', 'like', '%' . $word . '%')->first();
+
+            if ($category) {
+                return $category; // Mengembalikan kategori pertama yang cocok
             }
         }
 

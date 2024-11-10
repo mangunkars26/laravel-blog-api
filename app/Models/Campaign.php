@@ -23,6 +23,11 @@ class Campaign extends Model
         return $this->hasMany(Donation::class);
     }
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'campaign_id');
+    }
+
     public function sluggable(): array
     {
         return [

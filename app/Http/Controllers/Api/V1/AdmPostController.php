@@ -27,9 +27,9 @@ class AdmPostController extends Controller
         $query->where('status', $request->status);
     }
 
-    // Filter berdasarkan author_id
-    if ($request->filled('author_id')) {
-        $query->where('author_id', $request->author_id);
+    // Filter berdasarkan user_id
+    if ($request->filled('user_id')) {
+        $query->where('user_id', $request->user_id);
     }
 
     // Filter berdasarkan category_id
@@ -181,10 +181,10 @@ class AdmPostController extends Controller
     }
 
     // Show a specific post
-    public function show($slug)
+    public function show($id)
     {
         try {
-            $post = Post::findOrFail($slug);
+            $post = Post::findOrFail($id);
             return response()->json([
                 'success' => true,
                 'message' => 'Post retrieved successfully',

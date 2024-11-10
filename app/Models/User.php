@@ -46,6 +46,8 @@ class User extends Authenticatable implements JWTSubject, MustVerifyEmail
         return [];
     }
 
+    
+
     /**
      * The attributes that should be hidden for serialization.
      *
