@@ -40,4 +40,9 @@ class Post extends Model
         return $this->belongsToMany(Tag::class, 'post_tag');
     }
 
+    public function getUrlAtrribute()
+    {
+        return url('author/{this->user->name}/{$this->slug}');
+    }
+
 }

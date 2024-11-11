@@ -80,54 +80,52 @@ class PostController extends Controller
 
         
 
-        public function getPostsByCategory(Request $request, $categorySlug)
-        {
-            // Ambil nilai limit dari request, default ke 50 jika tidak ada
-            $limit = $request->input('limit', 50);
-        
-            // Cari kategori berdasarkan slug
-            $category = Category::where('slug', $categorySlug)->first();
-        
-            if (!$category) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Kategori tak ditemukan',
-                    'data' => null,
-                ], 404);
-            }
-        
-            // Ambil daftar posts yang memiliki kategori tertentu dan dengan relasi tambahan
-            $posts = Post::with(['categories', 'tags', 'user:id,name'])
-                ->where('status', 'published')
-                ->whereHas('categories', function ($query) use ($category) {
-                    $query->where('category_id', $category->id);
-                })
-                ->paginate($limit);
-        
-            // Menangani kasus jika tidak ada tags yang terkait menggunakan Collection each
-            $posts->getCollection()->each(function ($post) {
-                if ($post->tags->isEmpty()) {
-                    $post->tags = collect(['No Tags']); // Mengganti dengan koleksi berisi 'No Tags' jika tidak ada tag
-                }
-            });
-        
-            // Kembalikan response dengan data posts
+    public function getPostsByCategory(Request $request, $categorySlug)
+    {
+        // Ambil nilai limit dari request, default ke 50 jika tidak ada
+        $limit = $request->input('limit', 50);
+    
+        // Cari kategori berdasarkan slug dengan posts yang memiliki relasi tambahan
+        $category = Category::where('slug', $categorySlug)->first();
+    
+        if (!$category) {
             return response()->json([
-                'success' => true,
-                'message' => 'Posts retrieved successfully',
-                'data' => $posts,
-            ]);
+                'success' => false,
+                'message' => 'Kategori tidak ditemukan',
+                'data' => null,
+            ], 404);
         }
-
-    public function show($id)
-        {
-            try {
-
-                $post = Post::with(['category', 'tags', 'user'])
-                    ->where('id', $id)
+    
+        // Ambil posts yang memiliki kategori tertentu dan sudah published
+        $posts = Post::with(['tags', 'user:id,name'])
+            ->where('status', 'published')
+            ->where('category_id', $category->id)
+            ->paginate($limit);
+    
+        // Jika post tidak memiliki tag, tambahkan 'No Tags'
+        $posts->getCollection()->transform(function ($post) {
+            if ($post->tags->isEmpty()) {
+                $post->tags = collect(['No Tags']);
+            }
+            return $post;
+        });
+    
+        // Kembalikan response dengan data posts
+        return response()->json([
+            'success' => true,
+            'message' => 'Posts retrieved successfully',
+            'data' => $posts,
+        ]);
+    }
+    
+    public function show($slug)
+    {
+        try {
+            Log::info("Menerima request dengan slug: {$slug}");
+                $post = Post::with(['category', 'user'])
+                    ->where('slug', $slug)
                     ->where('status', 'published')
                     ->firstOrFail();
-
 
                 return response()->json([
                     'success' => true,
@@ -137,18 +135,17 @@ class PostController extends Controller
             } catch (ModelNotFoundException $e) {
                 return response()->json([
                     'success' => false,
-                    'message' => "Postingan dengan id {$id} tidak ditemukan",
+                    'message' => "Postingan dengan slug {$slug} tidak ditemukan",
                     'data' => null,
                 ], 404);
             } catch (Exception $e) {
-                Log::error("Error ketika ambil post: " . $e->getMessage());
                 return response()->json([
                     'success' => false,
                     'message' => 'Terjadi kesalahan saat mengambil postingan',
                     'data' => null,
                 ], 500);
             }
-        }
+    }
 
     
         
@@ -214,4 +211,4 @@ class PostController extends Controller
 //         }
 
 
-}
+

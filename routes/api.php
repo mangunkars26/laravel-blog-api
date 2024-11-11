@@ -7,9 +7,11 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\PostController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\DonationController;
+use App\Http\Controllers\Api\V1\AuthorController;
 use App\Http\Controllers\Api\V1\AdmPostController;
 use App\Http\Controllers\Api\V1\CampaignController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\PostsStatsController;
 
 // Grup rute dengan prefix 'v1'
 Route::prefix('v1')->group( function () {
@@ -17,13 +19,12 @@ Route::prefix('v1')->group( function () {
         // Grup rute untuk 'posts'
     Route::prefix('posts')->group(function () {
         Route::get('/all', [PostController::class, 'allPosts']);
-        Route::get('/', [PostController::class, 'index']); // Menampilkan daftar postingan
-        // Route::get('/{slug}', [PostController::class, 'show']); // Menampilkan postingan berdasarkan slug
-        Route::get('/{id}', [PostController::class, 'show']); // Menampilkan postingan berdasarkan ID numerik
-        Route::get('/popular', [PostController::class, 'popularPosts']); // Mendapatkan postingan popule
-        Route::get('/related/{postId}', [PostController::class, 'getRelatedPosts']); // Mendapatkan postingan terkait berdasarkan post ID
-        Route::get('/category/{categoryId}', [PostController::class, 'getPostsByCategory']); // Mendapatkan postingan berdasarkan kategori
-    });
+        Route::get('/', [PostController::class, 'index']);
+        Route::get('/{slug}', [PostController::class, 'show']);
+        // Route::get('/{id}', [PostController::class, 'show']);
+        Route::get('/popular', [PostController::class, 'popularPosts']);
+        Route::get('/related/{postId}', [PostController::class, 'getRelatedPosts']);
+        Route::get('/{categoryslug}', [PostController::class, 'getPostsByCategory']);
 
     // Rute yang tidak memerlukan autentikasi
     Route::prefix('auth')->group(function () {
@@ -55,16 +56,22 @@ Route::prefix('v1')->group( function () {
             Route::get('/', [AdmPostController::class, 'index']);
             Route::post('/create', [AdmPostController::class,'store']);
             Route::patch('/update/{id}', [AdmPostController::class,'update']);
-            Route::delete('/{id}', [AdmPostController::class,'destroy']);
-            Route::get('/stats', [AdmPostController::class,'stats']);
-            Route::patch('/{id}/publish', [AdmPostController::class, 'toPublish']);
+            Route::delete('/delete/{id}', [AdmPostController::class,'destroy']);
+            Route::get('/stats', [PostsStatsController::class,'stats']);
+            Route::patch('/publish/{id}', [AdmPostController::class, 'toPublish']);
             Route::post('/batch-delete', [AdmPostController::class, 'batchDelete']);
             Route::get('/search', [AdmPostController::class, 'searchPosts']);
             Route::get('/popular', [AdmPostController::class, 'popularPosts']);
-
         });    
 
-        Route::middleware(['role:admin, author'])->prefix('admin')->group(function (){
+        Route::prefix('/author/{authorName}')->group(function () {
+            Route::get('/posts', [AuthorController::class, 'getAuthorPosts']);
+            Route::get('/{postSlug}', [AuthorController::class, 'showAuthorPostBySlug']);
+            // Route::get('/profile', [AuthorController::class, 'getAuthorProfile']);
+        })->middleware(['role:author']);
+        
+
+        Route::middleware(['role:admin'])->prefix('admin')->group(function (){
         Route::apiResource('/categories', CategoryController::class);
         Route::apiResource('/tags', TagController::class);
         });
@@ -88,3 +95,4 @@ Route::prefix('v1')->group( function () {
         Route::middleware('auth:api')->put('donations/{id}/status', [DonationController::class, 'updateStatus']);
     });
 });
+

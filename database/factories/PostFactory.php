@@ -34,14 +34,14 @@ class PostFactory extends Factory
             'How to Optimize Your SQL Queries for Performance'
         ];
 
-        $body = $this->faker->paragraphs(rand(8, 12), true);
+        $body = $this->faker->paragraphs(rand(12, 20), true);
         $title = $this->faker->randomElement($titles);
 
         // Mencari kategori yang sesuai dengan kata-kata dalam title atau body
         $category = $this->findMatchingCategory($title, $body);
 
         // Menentukan tag yang akan ditambahkan secara acak
-        $tags = Tag::inRandomOrder()->take(rand(2, 4))->pluck('id')->toArray();
+        // $tags = Tag::inRandomOrder()->take(rand(2, 4))->pluck('id')->toArray();
 
         return [
             'title' => $title,
