@@ -2,12 +2,12 @@
 
 namespace Database\Seeders;
 
-use App\Models\Post;
-use Database\Seeders\TagSeeder;
+// use App\Models\Post;
+// use Database\Seeders\TagSeeder;
 use Illuminate\Database\Seeder;
 use Database\Seeders\PostSeeder;
-use Database\Seeders\UserSeeder;
-use Database\Seeders\CategorySeeder;
+// use Database\Seeders\UserSeeder;
+// use Database\Seeders\CategorySeeder;
 
 class DatabaseSeeder extends Seeder
 {

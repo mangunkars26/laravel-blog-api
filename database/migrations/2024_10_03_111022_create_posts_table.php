@@ -16,20 +16,19 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
             $table->string('title');
-            $table->string('slug')->unique();
+            $table->string('slug')->unique(); // Untuk URL unik
             $table->text('body');
             $table->text('excerpt')->nullable();
             $table->string('featured_image')->nullable();
             $table->enum('status', ['draft', 'published', 'scheduled'])->default('draft');
-            $table->timestamp('published_at')->nullable();
+            $table->timestamp('published_at')->nullable()->index(); // Sorting publikasi
             $table->timestamp('scheduled_at')->nullable();
             $table->timestamps();
-            $table->integer('views_count')->default(0);
+            $table->unsignedInteger('views_count')->default(0); // Untuk caching jumlah views
             $table->text('meta_description')->nullable();
             $table->text('meta_keywords')->nullable();
-            $table->json('tags')->nullable();
-            
         });
+        
         
     }
 

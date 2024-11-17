@@ -6,34 +6,31 @@ use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\PostController;
 use App\Http\Controllers\Api\V1\UserController;
-use App\Http\Controllers\Api\DonationController;
+use App\Http\Controllers\Api\V1\StatsController;
 use App\Http\Controllers\Api\V1\AuthorController;
 use App\Http\Controllers\Api\V1\AdmPostController;
 use App\Http\Controllers\Api\V1\CampaignController;
 use App\Http\Controllers\Api\V1\CategoryController;
+use App\Http\Controllers\Api\V1\DonationController;
 use App\Http\Controllers\Api\V1\PostsStatsController;
 
 // Grup rute dengan prefix 'v1'
 Route::prefix('v1')->group( function () {
-    
-        // Grup rute untuk 'posts'
-    Route::prefix('posts')->group(function () {
-        Route::get('/all', [PostController::class, 'allPosts']);
+    Route::post('auth/register', [AuthController::class, 'register']);
+    Route::post('auth/login', [AuthController::class, 'login']);
+
+    //PREFIX POSTS
+        Route::prefix('posts')->group(function () {
         Route::get('/', [PostController::class, 'index']);
-        Route::get('/{slug}', [PostController::class, 'show']);
-        // Route::get('/{id}', [PostController::class, 'show']);
+        Route::get('/{slug}', [PostController::class, 'showBySlug']);
         Route::get('/popular', [PostController::class, 'popularPosts']);
         Route::get('/related/{postId}', [PostController::class, 'getRelatedPosts']);
         Route::get('/{categoryslug}', [PostController::class, 'getPostsByCategory']);
-
-    // Rute yang tidak memerlukan autentikasi
-    Route::prefix('auth')->group(function () {
-        Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
     });
 
-
-    
+    Route::prefix('stats')->group(function () {
+        Route::get('/posts/total-views', [PostController::class,'getTotalViews']);
+    });
 
     //campaigns
     Route::get('campaigns', [CampaignController::class, 'index']);
@@ -41,13 +38,6 @@ Route::prefix('v1')->group( function () {
 
     // Rute yang memerlukan autentikasi JWT
     Route::middleware(['auth:api'])->group(function () {
-
- 
-
-        // Rute untuk mendapatkan data user saat ini (opsional, bisa digabung dengan profile)
-        Route::get('/user', function (Request $request) {
-            return $request->user();
-        });
 
         // Rute yang memerlukan autentikasi admin dan author
         Route::middleware(['role:admin,author'])->prefix('admin/posts')->group(function () {
@@ -62,6 +52,14 @@ Route::prefix('v1')->group( function () {
             Route::post('/batch-delete', [AdmPostController::class, 'batchDelete']);
             Route::get('/search', [AdmPostController::class, 'searchPosts']);
             Route::get('/popular', [AdmPostController::class, 'popularPosts']);
+
+            //category untuk form create Post
+            Route::get('/categories', [CategoryController::class, 'getCategory']);
+
+            //stats
+            // api.php
+            Route::get('/stats', [StatsController::class, 'getStats']);
+
         });    
 
         Route::prefix('/author/{authorName}')->group(function () {
@@ -92,7 +90,8 @@ Route::prefix('v1')->group( function () {
 
         Route::middleware('auth:api')->post('campaigns', [CampaignController::class, 'store']);
         Route::middleware('auth:api')->post('donations', [DonationController::class, 'store']);
-        Route::middleware('auth:api')->put('donations/{id}/status', [DonationController::class, 'updateStatus']);
+        Route::middleware('auth:api')->put('donations/status/{id}', [DonationController::class, 'updateStatus']);
+
     });
 });
 

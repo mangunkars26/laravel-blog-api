@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use Log;
 use App\Models\Post;
+use App\Models\Category;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +17,9 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class AdmPostController extends Controller
 {
+
+    
+
     // Get all posts with advanced filtering, sorting, and pagination
     public function index(PostFilterRequest $request)
     {
@@ -128,15 +133,28 @@ class AdmPostController extends Controller
     {
         DB::beginTransaction();
         try {
+            // Debug request data
+            // Log::info('Request data:', $request->all());
+
+            $category = Category::where('name', $request->category->name)->first();
+
+            if (!$category) {
+                throw new \Exception('Category tidak ada');
+            }
+
+            $userId = $request->user()->id;
+
             $post = Post::create([
-                'user_id' => $request->user_id,
-                'category_id' => $request->category_id,
+                'user_id' => $userId,
+                'category_id' => $category->id,
                 'title' => $request->title,
                 'slug' => Str::slug($request->title),
                 'body' => $request->body,
                 'status' => $request->status ?? 'draft',
-                'scheduled_at' => $request->scheduled_at,
+                'scheduled_at' => $request->status === 'schedule' ? $request->scheduled_at : null,
             ]);
+
+        
 
             if ($request->hasFile('featured_image')) {
                 $post->featured_image = $this->handleFileUpload($request->file('featured_image'));
@@ -152,6 +170,8 @@ class AdmPostController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+            // \Log::error('Error creating post:', ['error' => $e->getMessage()]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create post',
@@ -159,6 +179,7 @@ class AdmPostController extends Controller
             ], 500);
         }
     }
+
 
     // Show a specific post
     public function show($id)

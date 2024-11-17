@@ -4,34 +4,31 @@ namespace App\Http\Controllers\Api\V1;
 
 use Exception;
 use App\Models\Post;
-use Illuminate\Support\Str;
+use App\Models\Category;
+use App\Models\PostView;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PostFilterRequest;
-use App\Models\Category;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\DB;
+
 
 class PostController extends Controller
 {
-
-    public function allPosts()
+    public function getTotalViews()
     {
-        try {
-            $posts = Post::paginate(10);
-            return response()->json(['data' => $posts]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        $totalViews = Post::sum('views_count');
+
+        return response()->json([
+            'total_views' => $totalViews
+        ]);
     }
 
     public function index(PostFilterRequest $request)
     {
         // Inisialisasi query untuk model Post
-        $query = Post::with(['user', 'category', 'tags']);
+        $query = Post::with(['user', 'category'])
+            ->where('status', 'published');
 
         // Filter berdasarkan status
         if ($request->filled('status')) {
@@ -62,12 +59,16 @@ class PostController extends Controller
         }
 
         // Sorting data
-        $sortBy = $request->get('sort_by', 'created_at');
-        $order = $request->get('order', 'desc');
+        $validSortColumns = ['created_at', 'title', 'status'];
+        $sortBy = in_array($request->get('sort_by'), $validSortColumns) ? $request->get('sort_by') : 'created_at';
+        $order = $request->get('order') === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortBy, $order);
 
-        // Ambil jumlah limit hasil yang diminta, default ke 20
-        $limit = $request->get('limit', 100);
+        $limit = min($request->get('limit', 20), 100);
+
+        $publishedPosts = Post::where('status', 'published');
+
+        $posts = $publishedPosts;
         $posts = $query->paginate($limit);
 
         // Response JSON untuk hasil postingan
@@ -96,13 +97,11 @@ class PostController extends Controller
             ], 404);
         }
     
-        // Ambil posts yang memiliki kategori tertentu dan sudah published
         $posts = Post::with(['tags', 'user:id,name'])
             ->where('status', 'published')
             ->where('category_id', $category->id)
             ->paginate($limit);
     
-        // Jika post tidak memiliki tag, tambahkan 'No Tags'
         $posts->getCollection()->transform(function ($post) {
             if ($post->tags->isEmpty()) {
                 $post->tags = collect(['No Tags']);
@@ -110,7 +109,6 @@ class PostController extends Controller
             return $post;
         });
     
-        // Kembalikan response dengan data posts
         return response()->json([
             'success' => true,
             'message' => 'Posts retrieved successfully',
@@ -118,19 +116,47 @@ class PostController extends Controller
         ]);
     }
     
-    public function show($slug)
+    public function showBySLug($slug)
     {
         try {
-            Log::info("Menerima request dengan slug: {$slug}");
                 $post = Post::with(['category', 'user'])
                     ->where('slug', $slug)
                     ->where('status', 'published')
                     ->firstOrFail();
 
+                $ipAddress = request()->ip();
+
+                $lastView = PostView::where('post_id', $post->id)
+                    ->where('ip_address', $ipAddress)
+                    ->latest('created_at')
+                    ->first();
+
+                    $canIncrementView = true;
+
+                    if ($lastView) {
+                        $timeSinceLastView = now()->diffInMinutes($lastView->created_at);
+
+                        if ($timeSinceLastView < 60 ){
+                            $canIncrementView = false;
+                        }
+                    }
+
+                    if ($canIncrementView) {
+                        PostView::create([
+                            'post_id' => $post->id,
+                            'ip_address' => $ipAddress,
+                        ]);
+
+                        $post->increment('views');
+                    }
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Postingan berhasil diambil',
-                    'data' => $post,
+                    'data' => [
+                        'post' => $post,
+                        'already_viewed' => !$canIncrementView,
+                    ],
                 ]);
             } catch (ModelNotFoundException $e) {
                 return response()->json([
@@ -147,68 +173,83 @@ class PostController extends Controller
             }
     }
 
+
+public function getRelatedPosts($postId, $limit = 5)
+{
+    try {
+        // Ambil post utama
+        $post = Post::with('category')->find($postId);
+
+        if (!$post) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Postingan tidak ditemukan',
+                'data' => null,
+            ], 404);
+        }
+
+        // Pastikan postingan memiliki kategori
+        $categoryId = $post->category->id ?? null;
+
+        if (!$categoryId) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Postingan tidak memiliki kategori terkait',
+                'data' => [],
+            ], 200);
+        }
+
+        // Cache key untuk related posts
+        $cacheKey = "related_posts_post_{$postId}";
+
+        // Coba ambil data dari cache
+        $relatedPosts = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($categoryId, $post, $limit) {
+            return Post::with(['category:id,name', 'tags', 'user:id,name'])
+                ->where('category_id', $categoryId)
+                ->where('id', '!=', $post->id)
+                ->orderBy('views_count', 'desc') // Urutkan berdasarkan popularitas
+                ->limit($limit)
+                ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'views_count', 'published_at', 'user_id']);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Related posts berhasil diambil',
+            'data' => $relatedPosts,
+        ], 200);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Terjadi kesalahan saat mengambil related posts',
+            'error' => $e->getMessage(),
+        ], 500);
+    }
+}
+
     
         
 
 
-//segera diperbaiki di akun chatGPT amin.degunner
 
-// public function getRelatedPosts($postId, $limit = 5)
-// {
-//     $post = Post::with('category')->find($postId);
+    // Get popular posts by views
+        public function getPopularPosts()
+        {
+            try {
+                $posts = Post::orderBy('views_count', 'desc')
+                              ->limit(10)
+                              ->get();
     
-//     if (!$post) {
-//         return response()->json([
-//             'success' => false,
-//             'message' => 'Postingan tidak ditemukan',
-//             'data' => null,
-//         ], 404);
-//     }
-
-//     // Pastikan postingan memiliki kategori terkait
-//     if (!$post->category) {
-//         return response()->json([
-//             'success' => false,
-//             'message' => 'Postingan tidak memiliki kategori terkait',
-//             'data' => null,
-//         ], 404);
-//     }
-
-//     // Mengambil postingan lain yang memiliki kategori yang sama
-//     $relatedPosts = Post::with(['category', 'tags', 'user:id,name'])
-//         ->where('category_id', $post->category->id)
-//         ->where('id', '!=', $post->id)
-//         ->limit($limit)
-//         ->get();
-
-//     return response()->json([
-//         'success' => true,
-//         'message' => 'Related posts berhasil diambil',
-//         'data' => $relatedPosts,
-//     ], 200);
-// }
-
-//         // Get popular posts by views
-//         public function popularPosts()
-//         {
-//             try {
-//                 $posts = Post::orderBy('views', 'desc')
-//                               ->limit(10)
-//                               ->get();
-    
-//                 return response()->json([
-//                     'success' => true,
-//                     'message' => 'Popular posts retrieved successfully',
-//                     'data' => $posts
-//                 ], 200);
-//             } catch (\Exception $e) {
-//                 return response()->json([
-//                     'success' => false,
-//                     'message' => 'Failed to retrieve popular posts',
-//                     'error' => $e->getMessage()
-//                 ], 500);
-//             }
-//         }
-
-
-
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Popular posts retrieved successfully',
+                    'data' => $posts
+                ], 200);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to retrieve popular posts',
+                    'error' => $e->getMessage()
+                ], 500);
+            }
+        }
+}

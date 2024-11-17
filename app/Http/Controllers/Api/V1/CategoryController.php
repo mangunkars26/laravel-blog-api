@@ -10,6 +10,25 @@ use App\Http\Controllers\Controller;
 
 class CategoryController extends Controller
 {
+    public function getCategory()
+    {
+        try {
+            $categories = Category::select('id', 'name')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $categories,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch categories',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
     public function index()
     {
         try {
@@ -60,14 +79,14 @@ class CategoryController extends Controller
                 'data'    => $category
             ], 201);
         } catch (\Illuminate\Database\QueryException $e) {
-            Log::error('Database error while creating category: ' . $e->getMessage());
+            // Log::error('Database error while creating category: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Database error occurred while creating the category.',
                 'error'   => $e->getMessage(),
             ], 500);
         } catch (Exception $e) {
-            Log::error('General error while creating category: ' . $e->getMessage());
+            // Log::error('General error while creating category: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An unexpected error occurred while creating the category.',
@@ -104,21 +123,21 @@ class CategoryController extends Controller
             'data'    => $category
         ], 200);
     } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        Log::error('Category not found: ' . $id);
+        // Log::error('Category not found: ' . $id);
         return response()->json([
             'success' => false,
             'message' => 'Kategori tidak ditemukan.',
             'error'   => $e->getMessage(),
         ], 404);
     } catch (\Illuminate\Database\QueryException $e) {
-        Log::error('Database error while updating category: ' . $e->getMessage());
+        // Log::error('Database error while updating category: ' . $e->getMessage());
         return response()->json([
             'success' => false,
             'message' => 'Database error occurred while updating the category.',
             'error'   => $e->getMessage(),
         ], 500);
     } catch (Exception $e) {
-        Log::error('General error while updating category: ' . $e->getMessage());
+        // Log::error('General error while updating category: ' . $e->getMessage());
         return response()->json([
             'success' => false,
             'message' => 'An unexpected error occurred while updating the category.',

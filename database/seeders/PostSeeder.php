@@ -7,44 +7,36 @@ use App\Models\Post;
 use App\Models\User;
 use App\Models\Category;
 use Illuminate\Support\Str;
+use Faker\Factory as Faker;
 
 class PostSeeder extends Seeder
 {
     public function run()
     {
-        // Post::factory(57)->create();
-        // Menambahkan post dengan data tertentu
-        Post::create([
-            'user_id' => 1, // Bisa disesuaikan dengan user_id yang valid di database
-            'category_id' => 1, // Pastikan category_id yang ada
-            'title' => 'The Rise of Quantum Computing', // Contoh title
-            'slug' => Str::slug('The Rise of Quantum Computing'), // Membuat slug dari title
-            'body' => 'Quantum computing is the next frontier in technology that has the potential to revolutionize the world.',
-            'status' => 'published', // Status bisa disesuaikan
-            'scheduled_at' => now(), // Bisa disesuaikan jika ada waktu penjadwalan
-        ]);
+        // Inisialisasi Faker untuk menghasilkan data acak
+        $faker = Faker::create();
 
-        // Menambahkan beberapa post lainnya
-        Post::create([
-            'user_id' => 2,
-            'category_id' => 2,
-            'title' => 'Understanding Artificial Intelligence',
-            'slug' => Str::slug('Understanding Artificial Intelligence'),
-            'body' => 'Artificial Intelligence (AI) is transforming industries across the world.',
-            'status' => 'published',
-            'scheduled_at' => now(),
-        ]);
+        // Loop untuk membuat 20 post
+        for ($i = 0; $i < 200; $i++) {
+            // Pilih user_id dan category_id secara acak dari data yang ada
+            $user_id = rand(1, 5); // Misal ada 5 user di database
+            $category_id = rand(1, 5); // Misal ada 5 kategori di database
 
-        // Menambahkan post dengan status scheduled
-        Post::create([
-            'user_id' => 3,
-            'category_id' => 3,
-            'title' => 'Exploring the Future of Cloud Computing',
-            'slug' => Str::slug('Exploring the Future of Cloud Computing'),
-            'body' => 'Cloud computing continues to shape the future of IT infrastructure.',
-            'status' => 'scheduled',
-            'scheduled_at' => now()->addDays(3), // Penjadwalan beberapa hari ke depan
-        ]);
-
+            // Buat post baru dengan data acak
+            Post::create([
+                'user_id' => $user_id,
+                'category_id' => $category_id,
+                'title' => $faker->sentence, // Judul acak
+                'slug' => Str::slug($faker->sentence), // Slug dari judul
+                'body' => $faker->paragraph(50), // Konten acak
+                'status' => $faker->randomElement(['published', 'draft', 'scheduled']), // Status acak
+                'scheduled_at' => $faker->randomElement([now(), now()->addDays(rand(1, 7))]), // Waktu penjadwalan acak
+                'published_at' => $faker->randomElement([now(), now()->addDays(rand(1, 7))]), // Waktu publish acak
+                'views_count' => $faker->numberBetween(0, 100), // Views count acak
+                'meta_description' => $faker->sentence, // Meta description acak
+                'meta_keywords' => $faker->words(5, true), // Meta keywords acak
+                // 'tags' => json_encode($faker->words(3)), // Tags acak
+            ]);
+        }
     }
 }
