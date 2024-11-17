@@ -19,11 +19,13 @@ Route::prefix('v1')->group( function () {
     Route::post('auth/register', [AuthController::class, 'register']);
     Route::post('auth/login', [AuthController::class, 'login']);
 
+    Route::get('/popular_posts', [PostController::class, 'getPopularPosts']);
+
+
     //PREFIX POSTS
         Route::prefix('posts')->group(function () {
         Route::get('/', [PostController::class, 'index']);
         Route::get('/{slug}', [PostController::class, 'showBySlug']);
-        Route::get('/popular', [PostController::class, 'popularPosts']);
         Route::get('/related/{postId}', [PostController::class, 'getRelatedPosts']);
         Route::get('/{categoryslug}', [PostController::class, 'getPostsByCategory']);
     });
@@ -51,7 +53,6 @@ Route::prefix('v1')->group( function () {
             Route::patch('/publish/{id}', [AdmPostController::class, 'toPublish']);
             Route::post('/batch-delete', [AdmPostController::class, 'batchDelete']);
             Route::get('/search', [AdmPostController::class, 'searchPosts']);
-            Route::get('/popular', [AdmPostController::class, 'popularPosts']);
 
             //category untuk form create Post
             Route::get('/categories', [CategoryController::class, 'getCategory']);

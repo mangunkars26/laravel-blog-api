@@ -7,8 +7,8 @@ use App\Models\Post;
 use App\Models\Category;
 use App\Models\PostView;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Cache;
 use App\Http\Requests\PostFilterRequest;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
@@ -174,70 +174,72 @@ class PostController extends Controller
     }
 
 
-public function getRelatedPosts($postId, $limit = 5)
-{
-    try {
-        // Ambil post utama
-        $post = Post::with('category')->find($postId);
+    public function getRelatedPosts($postId, $limit = 5)
+    {
+        try {
+            // Ambil post utama
+            $post = Post::with('category')->find($postId);
 
-        if (!$post) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Postingan tidak ditemukan',
-                'data' => null,
-            ], 404);
-        }
+            if (!$post) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Postingan tidak ditemukan',
+                    'data' => null,
+                ], 404);
+            }
 
-        // Pastikan postingan memiliki kategori
-        $categoryId = $post->category->id ?? null;
+            // Pastikan postingan memiliki kategori
+            $categoryId = $post->category->id ?? null;
 
-        if (!$categoryId) {
+            if (!$categoryId) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Postingan tidak memiliki kategori terkait',
+                    'data' => [],
+                ], 200);
+            }
+
+            // Cache key untuk related posts
+            $cacheKey = "related_posts_post_{$postId}";
+
+            // Coba ambil data dari cache
+            $relatedPosts = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($categoryId, $post, $limit) {
+                return Post::with(['category:id,name', 'tags', 'user:id,name'])
+                    ->where('category_id', $categoryId)
+                    ->where('id', '!=', $post->id)
+                    ->orderBy('views_count', 'desc') // Urutkan berdasarkan popularitas
+                    ->limit($limit)
+                    ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'views_count', 'published_at', 'user_id']);
+            });
+
             return response()->json([
                 'success' => true,
-                'message' => 'Postingan tidak memiliki kategori terkait',
-                'data' => [],
+                'message' => 'Related posts berhasil diambil',
+                'data' => $relatedPosts,
             ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil related posts',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        // Cache key untuk related posts
-        $cacheKey = "related_posts_post_{$postId}";
-
-        // Coba ambil data dari cache
-        $relatedPosts = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($categoryId, $post, $limit) {
-            return Post::with(['category:id,name', 'tags', 'user:id,name'])
-                ->where('category_id', $categoryId)
-                ->where('id', '!=', $post->id)
-                ->orderBy('views_count', 'desc') // Urutkan berdasarkan popularitas
-                ->limit($limit)
-                ->get(['id', 'title', 'slug', 'excerpt', 'featured_image', 'views_count', 'published_at', 'user_id']);
-        });
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Related posts berhasil diambil',
-            'data' => $relatedPosts,
-        ], 200);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Terjadi kesalahan saat mengambil related posts',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
-
-    
-        
-
-
 
     // Get popular posts by views
         public function getPopularPosts()
         {
             try {
                 $posts = Post::orderBy('views_count', 'desc')
-                              ->limit(10)
-                              ->get();
+                            ->where('status', 'published')
+                            ->limit(10)
+                            ->get(['id', 'title', 'slug', 'views_count']);
+
+                              // Menambahkan href untuk setiap post
+                        $posts->transform(function ($post) {
+                            $post->href = url("/posts/{$post->slug}"); // Membuat href untuk link post
+                            return $post;
+                        });
     
                 return response()->json([
                     'success' => true,
