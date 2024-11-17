@@ -1,98 +1,67 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\TagController;
-use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\PostController;
-use App\Http\Controllers\Api\V1\UserController;
-use App\Http\Controllers\Api\V1\StatsController;
-use App\Http\Controllers\Api\V1\AuthorController;
-use App\Http\Controllers\Api\V1\AdmPostController;
-use App\Http\Controllers\Api\V1\CampaignController;
-use App\Http\Controllers\Api\V1\CategoryController;
-use App\Http\Controllers\Api\V1\DonationController;
-use App\Http\Controllers\Api\V1\PostsStatsController;
+use App\Http\Controllers\Api\V1\{
+    AuthController, PostController, AdmPostController, CampaignController,
+    CategoryController, DonationController, StatsController, TagController,
+    UserController, AuthorController, PostsStatsController
+};
 
-// Grup rute dengan prefix 'v1'
-Route::prefix('v1')->group( function () {
-    Route::post('auth/register', [AuthController::class, 'register']);
-    Route::post('auth/login', [AuthController::class, 'login']);
+Route::prefix('v1')->group(function () {
+    // Authentication
+    Route::prefix('auth')->group(function () {
+        Route::post('register', [AuthController::class, 'register']);
+        Route::post('login', [AuthController::class, 'login']);
+    });
 
-    Route::get('/popular_posts', [PostController::class, 'getPopularPosts']);
-
-
-    //PREFIX POSTS
-        Route::prefix('posts')->group(function () {
+    // Public routes
+    Route::get('posts/popular', [PostController::class, 'getPopularPosts']);
+    Route::prefix('posts')->group(function () {
         Route::get('/', [PostController::class, 'index']);
         Route::get('/{slug}', [PostController::class, 'showBySlug']);
         Route::get('/related/{postId}', [PostController::class, 'getRelatedPosts']);
-        Route::get('/{categoryslug}', [PostController::class, 'getPostsByCategory']);
+        Route::get('/category/{categorySlug}', [PostController::class, 'getPostsByCategory']);
     });
 
-    Route::prefix('stats')->group(function () {
-        Route::get('/posts/total-views', [PostController::class,'getTotalViews']);
-    });
-
-    //campaigns
     Route::get('campaigns', [CampaignController::class, 'index']);
     Route::get('campaigns/{id}', [CampaignController::class, 'show']);
 
-    // Rute yang memerlukan autentikasi JWT
-    Route::middleware(['auth:api'])->group(function () {
+    // Protected routes
+    Route::middleware('auth:api')->group(function () {
+        // Admin routes
+        Route::middleware('role:admin')->prefix('admin')->group(function () {
+            Route::apiResource('categories', CategoryController::class);
+            Route::apiResource('tags', TagController::class);
+            Route::apiResource('users', UserController::class);
 
-        // Rute yang memerlukan autentikasi admin dan author
-        Route::middleware(['role:admin,author'])->prefix('admin/posts')->group(function () {
+            Route::prefix('posts')->group(function () {
+                Route::get('/', [AdmPostController::class, 'index']);
+                Route::post('/', [AdmPostController::class, 'store']);
+                Route::patch('/{id}', [AdmPostController::class, 'update']);
+                Route::delete('/{id}', [AdmPostController::class, 'destroy']);
+                Route::post('/batch-delete', [AdmPostController::class, 'batchDelete']);
+                Route::get('/search', [AdmPostController::class, 'searchPosts']);
+                Route::patch('/publish/{id}', [AdmPostController::class, 'toPublish']);
+                Route::get('/stats', [PostsStatsController::class, 'stats']);
+            });
 
-            //admincontroller
-            Route::get('/', [AdmPostController::class, 'index']);
-            Route::post('/create', [AdmPostController::class,'store']);
-            Route::patch('/update/{id}', [AdmPostController::class,'update']);
-            Route::delete('/delete/{id}', [AdmPostController::class,'destroy']);
-            Route::get('/stats', [PostsStatsController::class,'stats']);
-            Route::patch('/publish/{id}', [AdmPostController::class, 'toPublish']);
-            Route::post('/batch-delete', [AdmPostController::class, 'batchDelete']);
-            Route::get('/search', [AdmPostController::class, 'searchPosts']);
-
-            //category untuk form create Post
-            Route::get('/categories', [CategoryController::class, 'getCategory']);
-
-            //stats
-            // api.php
-            Route::get('/stats', [StatsController::class, 'getStats']);
-
-        });    
-
-        Route::prefix('/author/{authorName}')->group(function () {
-            Route::get('/posts', [AuthorController::class, 'getAuthorPosts']);
-            Route::get('/{postSlug}', [AuthorController::class, 'showAuthorPostBySlug']);
-            // Route::get('/profile', [AuthorController::class, 'getAuthorProfile']);
-        })->middleware(['role:author']);
-        
-
-        Route::middleware(['role:admin'])->prefix('admin')->group(function (){
-        Route::apiResource('/categories', CategoryController::class);
-        Route::apiResource('/tags', TagController::class);
+            Route::get('stats', [StatsController::class, 'getStats']);
         });
 
-        
-
-        // Rute yang hanya dapat diakses oleh admin
-        Route::middleware(['role:admin'])->group(function () {
-            // Contoh: Rute untuk mengelola users (jika sudah ada UserController)
-            Route::apiResource('/users', UserController::class);
-
-            // Rute AuthController untuk admin
-            Route::post('/logout', [AuthController::class, 'logout']);
-            Route::post('/refresh', [AuthController::class, 'refresh']);
-            Route::get('/profile', [AuthController::class, 'profile']);
+        // Author-specific routes
+        Route::middleware('role:author')->prefix('author/{authorName}')->group(function () {
+            Route::get('posts', [AuthorController::class, 'getAuthorPosts']);
+            Route::get('posts/{postSlug}', [AuthorController::class, 'showAuthorPostBySlug']);
         });
 
+        // Campaign and donation routes
+        Route::prefix('campaigns')->group(function () {
+            Route::post('/', [CampaignController::class, 'store']);
+        });
 
-        Route::middleware('auth:api')->post('campaigns', [CampaignController::class, 'store']);
-        Route::middleware('auth:api')->post('donations', [DonationController::class, 'store']);
-        Route::middleware('auth:api')->put('donations/status/{id}', [DonationController::class, 'updateStatus']);
-
+        Route::prefix('donations')->group(function () {
+            Route::post('/', [DonationController::class, 'store']);
+            Route::put('/status/{id}', [DonationController::class, 'updateStatus']);
+        });
     });
 });
-
