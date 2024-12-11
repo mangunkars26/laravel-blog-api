@@ -15,9 +15,9 @@ jobs:
       run: npm install && npm run build
 
     - name: Install PHP and Composer
-      uses: shivammathur/setup-php@v2
+      uses: SamKirkland/FTP-Deploy-Action@4.3.3
       with:
-          php-version: '8.1' # Adjust to match the PHP version used by your Laravel project
+          php-version: '8.1'
           tools: 'composer'
 
     - name: Install PHP dependencies

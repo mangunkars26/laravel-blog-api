@@ -128,7 +128,7 @@ class AuthController extends Controller
         }
     }
 
-    public function refresh()
+    public function refreshToken()
     {
         try {
             $newToken = JWTAuth::refresh();

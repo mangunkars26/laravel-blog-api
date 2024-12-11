@@ -2,29 +2,37 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\{
-    AuthController, PostController, AdmPostController, CampaignController,
-    CategoryController, DonationController, StatsController, TagController,
-    UserController, AuthorController, PostsStatsController
+    AuthController,
+    PostController,
+    AdmPostController,
+    CategoryController,
+    // CampaignController,
+    // DonationController,
+    StatsController,
+    TagController,
+    UserController,
+    AuthorController,
+    PostsStatsController
 };
 
 Route::prefix('v1')->group(function () {
     // Authentication
     Route::prefix('auth')->group(function () {
-        Route::post('register', [AuthController::class, 'register']);
-        Route::post('login', [AuthController::class, 'login']);
+        Route::post('/register', [AuthController::class, 'register']);
+        Route::post('/login', [AuthController::class, 'login']);
+        Route::post('/refresh_token', [AuthController::class,'refreshToken']);
     });
 
     // Public routes
     Route::get('posts/popular', [PostController::class, 'getPopularPosts']);
-    Route::prefix('posts')->group(function () {
-        Route::get('/', [PostController::class, 'index']);
-        Route::get('/{slug}', [PostController::class, 'showBySlug']);
-        Route::get('/related/{postId}', [PostController::class, 'getRelatedPosts']);
-        Route::get('/category/{categorySlug}', [PostController::class, 'getPostsByCategory']);
-    });
+        Route::get('/posts', [PostController::class, 'index']);
+        Route::get('/posts/{slug}', [PostController::class, 'showBySlug']);
+        Route::get('/posts/related/{postId}', [PostController::class, 'getRelatedPosts']);
+        Route::get('/posts/{categorySlug}', [PostController::class, 'getPostsByCategory']);
 
-    Route::get('campaigns', [CampaignController::class, 'index']);
-    Route::get('campaigns/{id}', [CampaignController::class, 'show']);
+
+    // Route::get('campaigns', [CampaignController::class, 'index']);
+    // Route::get('campaigns/{id}', [CampaignController::class, 'show']);
 
     // Protected routes
     Route::middleware('auth:api')->group(function () {
