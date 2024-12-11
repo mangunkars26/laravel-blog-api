@@ -15,7 +15,7 @@ jobs:
       run: npm install && npm run build
 
     - name: Install PHP and Composer
-      uses: SamKirkland/FTP-Deploy-Action@4.3.3
+      uses: shivammathur/setup-php
       with:
           php-version: '8.1'
           tools: 'composer'
